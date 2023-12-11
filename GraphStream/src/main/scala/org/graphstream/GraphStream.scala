@@ -13,6 +13,7 @@ object GraphStream extends App {
   val listener = new Listener()
   spark.streams.addListener(listener)
 
+
   spark.sql("SET spark.sql.streaming.metricsEnabled=true")
   val KAFKA_TOPIC_NAME="graphs"
   val KAFKA_BOOTSTRAP_SERVERS_CONS="localhost:9092"

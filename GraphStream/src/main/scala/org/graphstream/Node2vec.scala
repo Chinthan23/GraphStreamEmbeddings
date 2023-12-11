@@ -16,12 +16,12 @@ object Node2vec extends Serializable {
   lazy val logger: Logger = LoggerFactory.getLogger(getClass.getName);
 
   var context: SparkContext = null
-  var degree: Int = 10000
-  var numWalks: Int = 10
+  var degree: Int = 1000000
+  var numWalks: Int = 20
   var directed: Boolean = true
   var p: Double = 1.0
   var q: Double = 1.0
-  var walkLength: Int = 20
+  var walkLength: Int =10
 //  var node2id: RDD[(String, Long)] = null
   var indexedEdges: RDD[Edge[EdgeAttr]] = _
   var indexedNodes: RDD[(VertexId, NodeAttr)] = _
@@ -60,13 +60,13 @@ object Node2vec extends Serializable {
         neighbors_ = neighbors.sortWith{ case (left, right) => left._2 > right._2 }.slice(0, bcMaxDegree.value)
       }
       (nodeId, NodeAttr(neighbors = neighbors_.distinct))
-    }.repartition(10).cache()
+    }.repartition(5).cache()
 
     val newIndexedEdges = newIndexedNodes.flatMap { case (srcId, clickNode) =>
       clickNode.neighbors.map { case (dstId, weight) =>
         Edge(srcId, dstId, EdgeAttr())
       }
-    }.repartition(10).cache()
+    }.repartition(5).cache()
     if(firstBatch){
       indexedNodes=newIndexedNodes
       indexedEdges=newIndexedEdges
@@ -75,8 +75,8 @@ object Node2vec extends Serializable {
       indexedNodes = indexedNodes.union(newIndexedNodes).reduceByKey
       { (nodeAttr1, nodeAttr2) =>
         nodeAttr1.copy(neighbors = (nodeAttr1.neighbors ++ nodeAttr2.neighbors).distinct)
-      }.repartition(10).cache()
-      indexedEdges = indexedEdges.union(newIndexedEdges).repartition(10).cache()
+      }.repartition(5).cache()
+      indexedEdges = indexedEdges.union(newIndexedEdges).repartition(5).cache()
     }
 
     this
@@ -114,7 +114,7 @@ object Node2vec extends Serializable {
   def randomWalk(): this.type = {
     val edge2attr = graph.triplets.map { edgeTriplet =>
       (s"${edgeTriplet.srcId}${edgeTriplet.dstId}", edgeTriplet.attr)
-    }.repartition(10).cache
+    }.repartition(5).cache
     edge2attr.first
 
     for (iter <- 0 until numWalks) {
@@ -195,7 +195,7 @@ object Node2vec extends Serializable {
         Try(pathBuffer.mkString("\t")).getOrElse(null)
       }
       .filter(x => x != null && x.replaceAll("\\s", "").length > 0)
-      .repartition(10)
+      .repartition(5)
       .saveAsTextFile(s"${output}_${batchid}_randomPath")
 
     this
@@ -217,7 +217,7 @@ object Node2vec extends Serializable {
       }
 
         node2vector.map { case (nodeId, vector) => s"$nodeId\t$vector" }
-        .repartition(10)
+        .repartition(5)
         .saveAsTextFile(s"${output}_${batchid}.emb")
       }
     }

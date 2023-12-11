@@ -30,7 +30,7 @@ object Word2vec extends Serializable {
   }
 
   def read(path: String): RDD[Iterable[String]] = {
-    context.textFile(path).repartition(200).map(_.split("\\s").toSeq)
+    context.textFile(path).repartition(5).map(_.split("\\s").toSeq)
   }
 
   def fit(input: RDD[Iterable[String]]): this.type = {
